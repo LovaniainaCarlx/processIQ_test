@@ -1,0 +1,119 @@
+openapi: 3.0.3
+info:
+  title: PDF Batch Generator API
+  version: 1.0.0
+  description: API pour générer des PDFs en batch avec Node.js, Bull et MongoDB GridFS
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/documents/batch:
+    post:
+      summary: Crée un batch de génération PDF
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userIds:
+                  type: array
+                  items:
+                    type: string
+              example:
+                userIds: ["user1", "user2", "user3"]
+      responses:
+        '200':
+          description: Batch créé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batchId:
+                    type: string
+                example:
+                  batchId: "batch_123456"
+        '400':
+          description: Requête invalide
+  /api/documents/batch/{batchId}:
+    get:
+      summary: Retourne le statut d’un batch
+      parameters:
+        - in: path
+          name: batchId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Statut du batch
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  documents:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        documentId:
+                          type: string
+                        status:
+                          type: string
+                        fileId:
+                          type: string
+              example:
+                status: "processing"
+                documents:
+                  - documentId: "doc1"
+                    status: "completed"
+                    fileId: "file_abc123"
+                  - documentId: "doc2"
+                    status: "pending"
+                    fileId: null
+  /api/documents/{documentId}:
+    get:
+      summary: Récupère le PDF généré
+      parameters:
+        - in: path
+          name: documentId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: PDF retourné en streaming
+          content:
+            application/pdf: {}
+        '404':
+          description: Document non trouvé
+  /health:
+    get:
+      summary: Vérifie l’état des services (MongoDB, Redis, queue)
+      responses:
+        '200':
+          description: Services opérationnels
+          content:
+            application/json:
+              example:
+                status: "ok"
+                services:
+                  mongodb: "up"
+                  redis: "up"
+                  queue:
+                    waiting: 10
+                    active: 2
+                    completed: 50
+                    failed: 1
+  /metrics:
+    get:
+      summary: Expose les métriques Prometheus
+      responses:
+        '200':
+          description: Métriques au format Prometheus
+          content:
+            text/plain: {}
