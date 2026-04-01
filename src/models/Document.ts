@@ -5,7 +5,9 @@ export interface IDocument extends Document {
   batchId: string;
   filename: string;
   status: "pending" | "completed" | "failed";
-  filePath?: string; // ✅ AJOUT
+  filePath?: string; // (optionnel si stockage local)
+  fileId?: string;   // ✅ IMPORTANT pour GridFS
+  userId: string;
   createdAt: Date;
 }
 
@@ -18,7 +20,9 @@ const DocumentSchema: Schema = new Schema({
     enum: ["pending","completed","failed"], 
     default: "pending" 
   },
-  filePath: { type: String }, // ✅ AJOUT
+  filePath: { type: String }, // optionnel
+  fileId: { type: String },   // ✅ AJOUT CRITIQUE
+  userId: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -3,12 +3,20 @@ import dotenv from "dotenv";
 import { connectDB } from "./db";
 import documentRoutes from "./routes/documentRoutes";
 import healthRoutes from "./routes/healthRoutes";
+import path from "path";
+import clientRoutes from "./routes/clientRoutes";
+
+
+
+// Sert tous les fichiers statiques du dossier public
 
 
 
 dotenv.config();
 
 const app = express();
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/api/clients", clientRoutes);
 
 // Middleware JSON
 app.use(express.json());
