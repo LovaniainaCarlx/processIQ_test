@@ -1,44 +1,34 @@
-import express, { Request, Response } from "express";
-import dotenv from "dotenv";
+import express from "express";
+import path from "path";
 import { connectDB } from "./db";
 import documentRoutes from "./routes/documentRoutes";
 import healthRoutes from "./routes/healthRoutes";
-import path from "path";
 import clientRoutes from "./routes/clientRoutes";
 
-
-
-// Sert tous les fichiers statiques du dossier public
-
-
-
-dotenv.config();
-
 const app = express();
-app.use(express.static(path.join(__dirname, "public")));
-app.use("/api/clients", clientRoutes);
 
 // Middleware JSON
 app.use(express.json());
 
-// Routes API
+// Serve static files
+app.use(express.static(path.join(__dirname, "public")));
+
+// API routes
+app.use("/api/clients", clientRoutes);
 app.use("/api/documents", documentRoutes);
 
-// Health check route (montée depuis healthRoutes)
+// Health check
 app.use("/", healthRoutes);
 
-// Port depuis .env ou fallback à 3000
+// Port Railway injecte PORT automatiquement
 const PORT = process.env.PORT || 3000;
 
-// Connexion à MongoDB puis démarrage serveur
-connectDB()
-  .then(() => {
-    console.log("MongoDB connected");
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error("Failed to connect to MongoDB:", err);
-    process.exit(1); // Quitte le processus si MongoDB ne démarre pas
+// Connexion MongoDB puis démarrage serveur
+const startServer = async () => {
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
   });
+};
+
+startServer();
