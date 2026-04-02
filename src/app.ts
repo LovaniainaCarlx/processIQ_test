@@ -4,6 +4,8 @@ import { connectDB } from "./db";
 import documentRoutes from "./routes/documentRoutes";
 import healthRoutes from "./routes/healthRoutes";
 import clientRoutes from "./routes/clientRoutes";
+import dotenv from "dotenv";
+dotenv.config();
 
 const app = express();
 
