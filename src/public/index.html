@@ -8,6 +8,23 @@
 <body>
 
   <div class="container">
+
+    <!-- 🔹 Ajouter client -->
+    <div class="card">
+      <h2>Ajouter un client</h2>
+
+      <div class="form-group">
+        <input id="nameInput" placeholder="Nom du client">
+      </div>
+
+      <div class="form-group">
+        <input id="idInput" placeholder="User ID">
+      </div>
+
+      <button id="addClientBtn">Ajouter</button>
+    </div>
+
+    <!-- 🔹 Batch -->
     <div class="card">
       <h1>Générateur de documents</h1>
 
@@ -19,14 +36,14 @@
       <button id="launchBtn">Lancer le batch</button>
     </div>
 
+    <!-- 🔹 Résultat -->
     <div class="card result-card">
       <h2>Résultat</h2>
       <div id="output"></div>
     </div>
+
   </div>
 
-  <!-- 🔥 Script externe -->
   <script src="script.js"></script>
-
 </body>
 </html>

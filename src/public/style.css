@@ -1,3 +1,4 @@
+/* Reset & Base */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -51,7 +52,7 @@ h2 {
   font-size: 20px;
 }
 
-/* Form */
+/* Form Groups */
 .form-group {
   margin-bottom: 15px;
 }
@@ -62,7 +63,7 @@ label {
   margin-bottom: 5px;
 }
 
-select {
+input, select {
   width: 100%;
   padding: 12px;
   border-radius: 10px;
@@ -71,13 +72,13 @@ select {
   transition: all 0.2s;
 }
 
-select:focus {
+input:focus, select:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
   outline: none;
 }
 
-/* Button */
+/* Buttons */
 button {
   width: 100%;
   padding: 12px;
@@ -88,6 +89,7 @@ button {
   font-weight: 600;
   cursor: pointer;
   transition: 0.2s;
+  margin-top: 5px;
 }
 
 button:hover {
@@ -98,12 +100,11 @@ button:active {
   transform: scale(0.98);
 }
 
-/* Output */
+/* Output Messages */
 #output {
   margin-top: 10px;
 }
 
-/* Messages */
 .success {
   color: #16a34a;
   margin-bottom: 10px;
@@ -118,7 +119,7 @@ button:active {
   color: #f59e0b;
 }
 
-/* List */
+/* List of documents */
 #docList {
   list-style: none;
   margin-top: 10px;
@@ -140,6 +141,7 @@ button:active {
   border-radius: 999px;
   font-size: 12px;
   font-weight: bold;
+  transition: background 0.3s, color 0.3s;
 }
 
 .badge.success {
@@ -183,4 +185,20 @@ a:hover {
     align-items: flex-start;
     gap: 5px;
   }
+}
+
+/* 🔹 Nouveau : Formulaire ajout client */
+#newClientForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+#newClientForm input {
+  width: 100%;
+}
+
+#newClientForm button {
+  margin-top: 0;
 }
