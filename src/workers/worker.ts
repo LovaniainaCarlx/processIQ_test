@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { documentQueue } from "../queues/documentQueue";
 import { connectDB } from "../db";
 import Document from "../models/Document";

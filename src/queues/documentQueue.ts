@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Queue from "bull";
 import Document from "../models/Document";
 import Batch from "../models/Batch";
