@@ -1,11 +1,19 @@
+const API_URL = "https://processiq-test-2.onrender.com";
+
+// Elements DOM
 const clientSelect = document.getElementById("clientSelect");
 const output = document.getElementById("output");
 const launchBtn = document.getElementById("launchBtn");
+const addClientBtn = document.getElementById("addClientBtn");
+const nameInput = document.getElementById("nameInput");
+const idInput = document.getElementById("idInput");
 
+// ======================
 // 🔹 Charger les clients
+// ======================
 async function loadClients() {
   try {
-    const res = await fetch("https://processiq-test-2.onrender.com/api/clients");
+    const res = await fetch(`${API_URL}/api/clients`);
     const clients = await res.json();
 
     clientSelect.innerHTML = "";
@@ -24,7 +32,49 @@ async function loadClients() {
 
 loadClients();
 
+// ======================
+// 🔹 Ajouter un client
+// ======================
+addClientBtn.addEventListener("click", async () => {
+  const name = nameInput.value.trim();
+  const userId = idInput.value.trim();
+
+  if (!name || !userId) {
+    output.innerHTML = `<div class="error">Tous les champs sont requis</div>`;
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/api/clients`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, name })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      output.innerHTML = `<div class="error">${data.error || "Erreur ajout client"}</div>`;
+      return;
+    }
+
+    output.innerHTML = `<div class="success">Client ajouté avec succès</div>`;
+
+    // Reset inputs
+    nameInput.value = "";
+    idInput.value = "";
+
+    // Recharger la liste des clients
+    loadClients();
+
+  } catch (err) {
+    output.innerHTML = `<div class="error">Erreur ajout client</div>`;
+  }
+});
+
+// ======================
 // 🔹 Lancer le batch
+// ======================
 launchBtn.addEventListener("click", async () => {
   const selected = Array.from(clientSelect.selectedOptions).map(o => o.value);
 
@@ -36,11 +86,9 @@ launchBtn.addEventListener("click", async () => {
   output.innerHTML = `<div class="loading">Lancement du batch...</div>`;
 
   try {
-    const res = await fetch("https://processiq-test-2.onrender.com/api/documents/batch", {
+    const res = await fetch(`${API_URL}/api/documents/batch`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userIds: selected })
     });
 
@@ -52,54 +100,39 @@ launchBtn.addEventListener("click", async () => {
     }
 
     const batchId = data.batchId;
-
-    output.innerHTML = `
-      <div class="success">Batch lancé (ID: ${batchId})</div>
-      <ul id="docList"></ul>
-    `;
-
+    output.innerHTML = `<div class="success">Batch lancé (ID: ${batchId})</div><ul id="docList"></ul>`;
     const docList = document.getElementById("docList");
 
+    // 🔹 Vérifier le statut toutes les 2 secondes
     const interval = setInterval(async () => {
-      try {
-        const statusRes = await fetch(`https://processiq-test-2.onrender.com/api/documents/batch/${batchId}`);
-        const statusData = await statusRes.json();
+      const statusRes = await fetch(`${API_URL}/api/documents/batch/${batchId}`);
+      const statusData = await statusRes.json();
 
-        docList.innerHTML = "";
+      docList.innerHTML = "";
 
-        statusData.documents.forEach(d => {
-          const li = document.createElement("li");
+      statusData.documents.forEach(d => {
+        const li = document.createElement("li");
+        let statusClass =
+          d.status === "completed" ? "badge success" :
+          d.status === "failed" ? "badge error" :
+          "badge pending";
 
-          let statusClass =
-            d.status === "completed" ? "badge success" :
-            d.status === "failed" ? "badge error" :
-            "badge pending";
+        li.innerHTML = `
+          <span class="${statusClass}">${d.status}</span>
+          <span class="filename">${d.filename}</span>
+          ${d.status === "completed"
+            ? `<a href="${API_URL}/api/documents/${d.documentId}" target="_blank">Télécharger</a>`
+            : ""}
+        `;
+        docList.appendChild(li);
+      });
 
-          li.innerHTML = `
-            <span class="${statusClass}">${d.status}</span>
-            <span class="filename">${d.filename}</span>
-            ${
-              d.status === "completed"
-                ? `<a href="https://processiq-test-2.onrender.com/api/documents/${d.documentId}" target="_blank">Télécharger</a>`
-                : ""
-            }
-          `;
+      const allDone = statusData.documents.every(d => d.status === "completed" || d.status === "failed");
+      if (allDone) clearInterval(interval);
 
-          docList.appendChild(li);
-        });
-
-        const allDone = statusData.documents.every(
-          d => d.status === "completed" || d.status === "failed"
-        );
-
-        if (allDone) clearInterval(interval);
-
-      } catch (err) {
-        console.error("Erreur polling:", err);
-      }
     }, 2000);
 
   } catch (err) {
-    output.innerHTML = `<div class="error">${err.message}</div>`;
+    output.innerHTML = `<div class="error">Erreur batch</div>`;
   }
 });
