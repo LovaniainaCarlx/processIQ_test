@@ -41,39 +41,36 @@ import { connectDB } from "./db";
 import documentRoutes from "./routes/documentRoutes";
 import healthRoutes from "./routes/healthRoutes";
 import clientRoutes from "./routes/clientRoutes";
-import authRoutes from "./routes/authRoutes";
 
-// dotenv uniquement en local
+// Charger dotenv seulement en local
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 
-
-
-
 const app = express();
 
+// ✅ CORS (obligatoire pour frontend Vercel)
+app.use(cors({
+  origin: "*" // tu peux remplacer par ton URL Vercel plus tard
+}));
 
-// ✅ CORS
-app.use(cors());
-
-// ✅ JSON
+// ✅ Middleware JSON
 app.use(express.json());
 
-// ✅ Static files
+// ✅ Servir fichiers statiques (important après build)
 app.use(express.static(path.join(__dirname, "../public")));
 
-// ✅ Routes
+// ✅ Routes API
 app.use("/api/clients", clientRoutes);
 app.use("/api/documents", documentRoutes);
-app.use("/api/auth", authRoutes);
 
-// ✅ Health
+// ✅ Health check
 app.use("/", healthRoutes);
 
+// ✅ Port (Render injecte automatiquement)
 const PORT = process.env.PORT || 3000;
 
-// ✅ Start server
+// ✅ Démarrage serveur après connexion MongoDB
 const startServer = async () => {
   try {
     await connectDB();
