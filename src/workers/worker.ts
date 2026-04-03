@@ -5,7 +5,7 @@ import { generatePDF } from "./pdfWorker";
 import { logger } from "../utils/logger";
 import { documentsGenerated, batchProcessingDuration } from "../utils/metrics";
 
-console.log("🚀 Worker démarré"); // garde juste pour le premier lancement
+console.log("🚀 Worker démarré");
 
 documentQueue.on("ready", () => {
   logger.info("Redis connecté (worker)");
@@ -20,46 +20,37 @@ connectDB().then(() => {
 
   documentQueue.process(20, async (job) => {
     const start = Date.now();
-    logger.info("Processing document", { batchId: job.data.batchId, documentId: job.data.documentId });
+    const { documentId, batchId } = job.data;
+
+    logger.info("Processing document", { batchId, documentId });
 
     try {
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("PDF timeout")), 5000)
-      );
+      // 🔹 Appel PDF générateur
+      const fileId = await generatePDF({ documentId, batchId });
 
-      const fileId = await Promise.race([
-        generatePDF(job.data),
-        timeout,
-      ]);
-
+      // 🔹 Mettre à jour le document dans MongoDB
       await Document.updateOne(
-        { documentId: job.data.documentId },
+        { documentId },
         { status: "completed", fileId }
       );
 
-      // ✅ Incrémenter métrique Prometheus
+      // 🔹 Metrics Prometheus
       documentsGenerated.inc();
-
-      // Histogramme durée batch (approximatif par document ici)
       batchProcessingDuration.observe((Date.now() - start) / 1000);
 
-      logger.info("PDF généré avec succès", { batchId: job.data.batchId, documentId: job.data.documentId, fileId });
+      logger.info("PDF généré avec succès", { batchId, documentId, fileId });
 
       return { fileId };
 
     } catch (error: unknown) {
-      // Vérification du type
       let errorMessage: string;
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else {
-        errorMessage = String(error);
-      }
+      if (error instanceof Error) errorMessage = error.message;
+      else errorMessage = String(error);
 
-      logger.error("Worker error", { batchId: job.data.batchId, documentId: job.data.documentId, error: errorMessage });
+      logger.error("Worker error", { batchId, documentId, error: errorMessage });
 
       await Document.updateOne(
-        { documentId: job.data.documentId },
+        { documentId },
         { status: "failed" }
       );
 
