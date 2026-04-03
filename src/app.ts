@@ -41,13 +41,18 @@ import { connectDB } from "./db";
 import documentRoutes from "./routes/documentRoutes";
 import healthRoutes from "./routes/healthRoutes";
 import clientRoutes from "./routes/clientRoutes";
+import authRoutes from "./routes/authRoutes";
 
 // dotenv uniquement en local
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 
+
+
+
 const app = express();
+
 
 // ✅ CORS
 app.use(cors());
@@ -61,6 +66,7 @@ app.use(express.static(path.join(__dirname, "../public")));
 // ✅ Routes
 app.use("/api/clients", clientRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/auth", authRoutes);
 
 // ✅ Health
 app.use("/", healthRoutes);

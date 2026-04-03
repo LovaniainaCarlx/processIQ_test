@@ -9,34 +9,37 @@
 
   <div class="container">
 
-    <!-- 🔹 Ajouter un client -->
+    <!-- ========================== -->
+    <!-- 🔹 Formulaire Ajout Client -->
+    <!-- ========================== -->
     <div class="card">
       <h2>Ajouter un client</h2>
-
-      <div class="form-group">
-        <input id="nameInput" placeholder="Nom du client" />
-      </div>
-
-      <div class="form-group">
-        <input id="idInput" placeholder="User ID" />
-      </div>
-
-      <button id="addClientBtn">Ajouter</button>
+      <form id="newClientForm">
+        <div class="form-group">
+          <input id="nameInput" placeholder="Nom du client" required />
+        </div>
+        <div class="form-group">
+          <input id="idInput" placeholder="User ID" required />
+        </div>
+        <button type="button" id="addClientBtn">Ajouter</button>
+      </form>
     </div>
 
-    <!-- 🔹 Sélection clients pour batch -->
+    <!-- ========================== -->
+    <!-- 🔹 Sélection Clients pour Batch -->
+    <!-- ========================== -->
     <div class="card">
       <h1>Générateur de documents</h1>
-
       <div class="form-group">
-        <label>Choisir des clients</label>
+        <label for="clientSelect">Choisir des clients</label>
         <select id="clientSelect" multiple></select>
       </div>
-
       <button id="launchBtn">Lancer le batch</button>
     </div>
 
-    <!-- 🔹 Résultat -->
+    <!-- ========================== -->
+    <!-- 🔹 Résultat / Feedback -->
+    <!-- ========================== -->
     <div class="card result-card">
       <h2>Résultat</h2>
       <div id="output"></div>

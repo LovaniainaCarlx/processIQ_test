@@ -1,5 +1,8 @@
 const API_URL = "https://processiq-test-2.onrender.com";
 
+// Récupérer le token depuis le localStorage
+const token = localStorage.getItem("token");
+
 // Elements DOM
 const clientSelect = document.getElementById("clientSelect");
 const output = document.getElementById("output");
@@ -13,9 +16,13 @@ const idInput = document.getElementById("idInput");
 // ======================
 async function loadClients() {
   try {
-    const res = await fetch(`${API_URL}/api/clients`);
-    const clients = await res.json();
+    const res = await fetch(`${API_URL}/api/clients`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
+    if (!res.ok) throw new Error("Erreur chargement clients");
+
+    const clients = await res.json();
     clientSelect.innerHTML = "";
 
     clients.forEach(c => {
@@ -47,7 +54,10 @@ addClientBtn.addEventListener("click", async () => {
   try {
     const res = await fetch(`${API_URL}/api/clients`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
       body: JSON.stringify({ userId, name })
     });
 
@@ -60,13 +70,10 @@ addClientBtn.addEventListener("click", async () => {
 
     output.innerHTML = `<div class="success">Client ajouté avec succès</div>`;
 
-    // Reset inputs
     nameInput.value = "";
     idInput.value = "";
 
-    // Recharger la liste des clients
     loadClients();
-
   } catch (err) {
     output.innerHTML = `<div class="error">Erreur ajout client</div>`;
   }
@@ -88,12 +95,14 @@ launchBtn.addEventListener("click", async () => {
   try {
     const res = await fetch(`${API_URL}/api/documents/batch`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
       body: JSON.stringify({ userIds: selected })
     });
 
     const data = await res.json();
-
     if (data.error) {
       output.innerHTML = `<div class="error">${data.error}</div>`;
       return;
@@ -103,9 +112,10 @@ launchBtn.addEventListener("click", async () => {
     output.innerHTML = `<div class="success">Batch lancé (ID: ${batchId})</div><ul id="docList"></ul>`;
     const docList = document.getElementById("docList");
 
-    // 🔹 Vérifier le statut toutes les 2 secondes
     const interval = setInterval(async () => {
-      const statusRes = await fetch(`${API_URL}/api/documents/batch/${batchId}`);
+      const statusRes = await fetch(`${API_URL}/api/documents/batch/${batchId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const statusData = await statusRes.json();
 
       docList.innerHTML = "";
