@@ -1,19 +1,56 @@
 import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { documentQueue } from "../queues/documentQueue";
-import Batch from "../models/Batch";
-import Document from "../models/Document"; // ✅ manquant
-import Client from "../models/Client";
 import mongoose from "mongoose";
+import PDFDocument from "pdfkit";
+
+import Batch from "../models/Batch";
+import Document from "../models/Document";
+import Client from "../models/Client";
 
 const router = Router();
 
-/**
- * POST /api/documents/batch
- */
+interface PDFJob {
+  documentId: string;
+  batchId: string;
+}
+
+// ======================
+// 🔹 GENERATE PDF (direct)
+// ======================
+async function generatePDF({ documentId, batchId }: PDFJob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      const db = mongoose.connection.db;
+      if (!db) return reject(new Error("MongoDB not connected"));
+
+      const bucket = new mongoose.mongo.GridFSBucket(db, { bucketName: "pdfs" });
+      const filename = `${documentId}.pdf`;
+      const uploadStream = bucket.openUploadStream(filename, {
+        metadata: { documentId, batchId },
+      });
+
+      const doc = new PDFDocument();
+      doc.pipe(uploadStream);
+
+      // Contenu du PDF
+      doc.fontSize(20).text(`Document ${documentId}`, { align: "center" });
+      doc.text(`Batch: ${batchId}`, { align: "center" });
+
+      doc.end();
+
+      uploadStream.on("finish", () => resolve(uploadStream.id.toString()));
+      uploadStream.on("error", (err) => reject(err));
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+// ======================
+// 🔹 POST /api/documents/batch
+// ======================
 router.post("/batch", async (req, res) => {
   const { userIds } = req.body;
-
   if (!Array.isArray(userIds) || userIds.length === 0)
     return res.status(400).json({ error: "userIds required" });
 
@@ -27,13 +64,6 @@ router.post("/batch", async (req, res) => {
       const documentId = uuidv4();
       documentIds.push(documentId);
 
-      // Queue job
-      documentQueue.add(
-        { documentId, batchId, userId },
-        { attempts: 3, backoff: { type: "exponential", delay: 1000 } }
-      );
-
-      // Préparer document
       documentsToInsert.push({
         documentId,
         batchId,
@@ -52,20 +82,29 @@ router.post("/batch", async (req, res) => {
 
     await Document.insertMany(documentsToInsert);
 
+    // Générer les PDFs directement et mettre à jour le status
+    for (const documentId of documentIds) {
+      try {
+        const fileId = await generatePDF({ documentId, batchId });
+        await Document.updateOne({ documentId }, { status: "completed", fileId });
+      } catch (err) {
+        await Document.updateOne({ documentId }, { status: "failed" });
+      }
+    }
+
     const batch = new Batch({ batchId, documentIds });
     await batch.save();
 
     res.json({ batchId, documentIds });
-
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     res.status(500).json({ error: message });
   }
 });
 
-/**
- * GET /api/documents/batch/:batchId
- */
+// ======================
+// 🔹 GET /api/documents/batch/:batchId
+// ======================
 router.get("/batch/:batchId", async (req, res) => {
   const { batchId } = req.params;
 
@@ -80,17 +119,15 @@ router.get("/batch/:batchId", async (req, res) => {
       status: batch.status,
       documents,
     });
-
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     res.status(500).json({ error: message });
   }
 });
 
-/**
- * ✅ GET /api/documents/:documentId
- * Télécharger PDF depuis GridFS
- */
+// ======================
+// 🔹 GET /api/documents/:documentId
+// ======================
 router.get("/:documentId", async (req, res) => {
   const { documentId } = req.params;
 
@@ -98,24 +135,13 @@ router.get("/:documentId", async (req, res) => {
     const doc = await Document.findOne({ documentId });
 
     if (!doc || !doc.fileId) {
-      return res.status(404).json({
-        error: "Document non trouvé ou pas encore généré"
-      });
+      return res.status(404).json({ error: "Document non trouvé ou pas encore généré" });
     }
 
-    const bucket = new mongoose.mongo.GridFSBucket(
-      mongoose.connection.db!,
-      { bucketName: "pdfs" }
-    );
+    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db!, { bucketName: "pdfs" });
+    const downloadStream = bucket.openDownloadStream(new mongoose.Types.ObjectId(doc.fileId));
 
-    const downloadStream = bucket.openDownloadStream(
-      new mongoose.Types.ObjectId(doc.fileId)
-    );
-
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${doc.filename}"`
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="${doc.filename}"`);
     res.setHeader("Content-Type", "application/pdf");
 
     downloadStream.pipe(res);
@@ -123,7 +149,6 @@ router.get("/:documentId", async (req, res) => {
     downloadStream.on("error", () => {
       res.status(500).json({ error: "Erreur téléchargement" });
     });
-
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     res.status(500).json({ error: message });

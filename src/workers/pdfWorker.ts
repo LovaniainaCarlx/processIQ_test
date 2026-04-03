@@ -8,42 +8,22 @@ interface PDFJob {
 }
 
 export const generatePDF = async ({ documentId, batchId }: PDFJob) => {
-  return new Promise<string>(async (resolve, reject) => {
-    try {
-      const db = mongoose.connection.db;
+  return new Promise<string>((resolve, reject) => {
+    const db = mongoose.connection.db;
+    if (!db) return reject(new Error("MongoDB not connected"));
 
-      if (!db) {
-        return reject(new Error("MongoDB not connected"));
-      }
+    const bucket = new GridFSBucket(db, { bucketName: "pdfs" });
+    const filename = `${documentId}.pdf`;
+    const uploadStream = bucket.openUploadStream(filename, { metadata: { documentId, batchId } });
 
-      const bucket = new GridFSBucket(db, { bucketName: "pdfs" });
-      const filename = `${documentId}.pdf`;
+    const doc = new PDFDocument();
+    doc.pipe(uploadStream);
 
-      const uploadStream = bucket.openUploadStream(filename, {
-        metadata: { documentId, batchId },
-      });
+    doc.fontSize(20).text(`Document ${documentId}`, { align: "center" });
+    doc.text(`Batch: ${batchId}`, { align: "center" });
+    doc.end();
 
-      const doc = new PDFDocument();
-      doc.pipe(uploadStream);
-
-      // Contenu PDF
-      doc.fontSize(20).text(`Document ${documentId}`, { align: "center" });
-      doc.moveDown();
-      doc.text(`Batch: ${batchId}`, { align: "center" });
-
-      doc.end();
-
-      // 🔹 Résolution uniquement quand le fichier est uploadé
-      uploadStream.on("finish", () => {
-        resolve(uploadStream.id.toString());
-      });
-
-      uploadStream.on("error", (err) => {
-        reject(err);
-      });
-
-    } catch (err) {
-      reject(err);
-    }
+    uploadStream.on("finish", () => resolve(uploadStream.id.toString()));
+    uploadStream.on("error", (err) => reject(err));
   });
 };
