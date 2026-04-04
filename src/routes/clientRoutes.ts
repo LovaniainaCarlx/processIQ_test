@@ -1,15 +1,14 @@
 // routes/clientRoutes.ts
 import { Router } from "express";
 import Client from "../models/Client";
-import { auth, AuthRequest } from "../middleware/auth";
 
 const router = Router();
 
-// GET /api/clients => liste clients de l'utilisateur connecté
-router.get("/", auth, async (req: AuthRequest, res) => {
+// GET /api/clients => liste tous les clients
+router.get("/", async (req, res) => {
   try {
     const clients = await Client.find(
-      { ownerId: req.user!.id }, // ! car on sait que user existe après auth
+      {},
       { _id: 0, userId: 1, name: 1, email: 1, address: 1, gender: 1, message: 1 }
     );
     res.json(clients);
@@ -19,7 +18,7 @@ router.get("/", auth, async (req: AuthRequest, res) => {
 });
 
 // POST /api/clients => ajouter un client
-router.post("/", auth, async (req: AuthRequest, res) => {
+router.post("/", async (req, res) => {
   try {
     const { userId, name, email, address, gender, message } = req.body;
 
@@ -28,7 +27,6 @@ router.post("/", auth, async (req: AuthRequest, res) => {
     }
 
     const client = new Client({
-      ownerId: req.user!.id,
       userId,
       name,
       email,
@@ -48,18 +46,20 @@ router.post("/", auth, async (req: AuthRequest, res) => {
 });
 
 // PATCH /api/clients/:userId => modifier client
-router.patch("/:userId", auth, async (req: AuthRequest, res) => {
+router.patch("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
     const { name, email, address, gender, message } = req.body;
 
     const client = await Client.findOneAndUpdate(
-      { userId, ownerId: req.user!.id },
+      { userId },
       { name, email, address, gender, message },
       { new: true }
     );
 
-    if (!client) return res.status(404).json({ error: "Client non trouvé" });
+    if (!client) {
+      return res.status(404).json({ error: "Client non trouvé" });
+    }
 
     res.json({ message: "Client modifié", client });
   } catch (err) {
@@ -68,13 +68,15 @@ router.patch("/:userId", auth, async (req: AuthRequest, res) => {
 });
 
 // DELETE /api/clients/:userId => supprimer client
-router.delete("/:userId", auth, async (req: AuthRequest, res) => {
+router.delete("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const client = await Client.findOneAndDelete({ userId, ownerId: req.user!.id });
+    const client = await Client.findOneAndDelete({ userId });
 
-    if (!client) return res.status(404).json({ error: "Client non trouvé" });
+    if (!client) {
+      return res.status(404).json({ error: "Client non trouvé" });
+    }
 
     res.json({ message: "Client supprimé" });
   } catch (err) {

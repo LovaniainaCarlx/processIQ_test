@@ -1,8 +1,5 @@
 const API_URL = "https://processiq-test-2.onrender.com";
 
-// Récupérer le token depuis le localStorage
-const token = localStorage.getItem("token");
-
 // Elements DOM
 const clientSelect = document.getElementById("clientSelect");
 const output = document.getElementById("output");
@@ -16,9 +13,7 @@ const idInput = document.getElementById("idInput");
 // ======================
 async function loadClients() {
   try {
-    const res = await fetch(`${API_URL}/api/clients`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const res = await fetch(`${API_URL}/api/clients`);
 
     if (!res.ok) throw new Error("Erreur chargement clients");
 
@@ -55,8 +50,7 @@ addClientBtn.addEventListener("click", async () => {
     const res = await fetch(`${API_URL}/api/clients`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ userId, name })
     });
@@ -96,8 +90,7 @@ launchBtn.addEventListener("click", async () => {
     const res = await fetch(`${API_URL}/api/documents/batch`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ userIds: selected })
     });
@@ -113,9 +106,7 @@ launchBtn.addEventListener("click", async () => {
     const docList = document.getElementById("docList");
 
     const interval = setInterval(async () => {
-      const statusRes = await fetch(`${API_URL}/api/documents/batch/${batchId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const statusRes = await fetch(`${API_URL}/api/documents/batch/${batchId}`);
       const statusData = await statusRes.json();
 
       docList.innerHTML = "";
@@ -137,7 +128,9 @@ launchBtn.addEventListener("click", async () => {
         docList.appendChild(li);
       });
 
-      const allDone = statusData.documents.every(d => d.status === "completed" || d.status === "failed");
+      const allDone = statusData.documents.every(
+        d => d.status === "completed" || d.status === "failed"
+      );
       if (allDone) clearInterval(interval);
 
     }, 2000);
